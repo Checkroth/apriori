@@ -1,0 +1,2 @@
+Spark 1.3.1 (git revision 908a0bf) built for Hadoop 2.6.0
+Build flags: -Phadoop-2.4 -Dhadoop.version=2.6.0 -Phive -Phive-thriftserver -Pyarn -DzincPort=3034
