@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -136,7 +138,13 @@ public final class Apriori {
 
     public static DataFrame candidateGen(DataFrame df, ArrayList<Integer> frequentItems) {
     	// Candidate Gen Function
-    	// 
+    	// Take first frequent 1-item
+    	// Select all rows containing this item
+    	// Loop through all other occurrences under that pid
+    	// Check for pair existence
+    	// if exists --> add to count
+    	// if doesn't exist --> initialize, set count at 1
+    	
     	return df;
     }
     
@@ -166,33 +174,12 @@ public final class Apriori {
 	xact.printSchema();
 //	System.out.println(frequentItems);
 //	[3, 32, 36, 38, 39, 41, 48, 79] @ .02 thresh
-	
-//	List<Row> rows = xact.toJavaRDD().collect();
-//	for (Row row : rows) {
-//		System.out.println(row.get(0) + "\t" + row.get(1));
-//	}
-//	System.out.println(rows);
-	
-	
-	
-//	DataFrame teenagers = sqlContext.sql("SELECT name FROM parquetFile WHERE age >= 13 AND age <= 19");
-//	Above may very well be what I have from 'select'
-//	List<Integer> items = xact.map(new Function<Row, Integer>() {
-//	  public int call(Row row) {
-//	    return row.getString(0);
-//	  }
-//	}).collect();
-	
-//	List<Row> rows = sqlContext.sql("SELECT *").toJavaRDD().collect();
-//	List<Row> rows = df.toJavaRDD().collect();
 
 //	GroupedData test = xact.groupBy("item");
 //	xact.select("item").show();
-//	List<Row> rows = test.agg("item");
 //	System.out.println(test.count());
 //	xact.groupBy("item").count().show();
 
-	//	System.out.println(xact.count());
 //	Column col = xact.col("item");
 	
 	
@@ -201,25 +188,6 @@ public final class Apriori {
 	// compute frequent pairs (itemsets of size 2), output them to a file
 	DataFrame frequentPairs = null;
 	// your code goes here
-
-	// MINSUP:
-	// User specified support threshold
-	// Second user argument, "support"
-	// args[1], double 'thresh'
-	
-	// Data Structure Fields:
-	// String tid
-	// int Item
-	// Need to add 'count'?
-
-	// NECESSARY VARS:
-	// T -- Whole dataset
-	// F = frequent itemsets
-	// C = Candidate key generated at current F (I think its actually just Current Fk - 1)
-	// c.count = number of times registered on this candidate key
-	// Uk = I have no clue-- I guess its just all of the pairs?
-	// minsup = "thresh" -- the minimum support threshold
-
 	// Get all frequent 1-item sets
 	// Set C_k to the previous entry in frequent itemsets (by loop)
 	// Loop through whole database as t
@@ -229,41 +197,50 @@ public final class Apriori {
 	// before loop back to C_k increment, set current F_k to candidates which meat threshold by c.count/n >= thresh
 	// LOOP TO SET C_K
 
+//	Make copy of the dataframe to avoid messing with triples calculation (not necessary?)
+	DataFrame rows_frame = xact;
+	HashMap<ArrayList<Integer>, Integer> pairs = new HashMap<ArrayList<Integer>, Integer>();
+	for(int k=1; k<frequentItems.size(); k++){
+		int candidate = frequentItems.get(k-1);
+//		Want to find every occurence of candidate in xact
+//		Loop through just those PIDs that contain candidate
+		List<Row> candidate_rows = xact.filter("item = " + candidate).toJavaRDD().collect();
+//		Remove all occurences of candidate from dataframe to avoid duplicates
+		rows_frame = rows_frame.filter("item != " + candidate);
+		for (Row c : candidate_rows) {
+//			Get all of the rows with matching tid
+			System.out.println("ERROR RIGHT NOW");
+			System.out.println(c.getString(0));
+			List<Row> search_rows = rows_frame.filter("tid = " + c.getString(0)).toJavaRDD().collect();
+			for(Row r : search_rows)
+			{
+//				Add current pair of items to array list for mapping
+				ArrayList<Integer> current_pair = new ArrayList<Integer>();
+				current_pair.add(c.getInt(1));
+				current_pair.add(r.getInt(1));
+//				Increment mapped count if the pair exists
+				if (pairs.containsKey(current_pair)) {
+					int current_count = pairs.get(current_pair);
+					pairs.put(current_pair, current_count+1);
+				}
+//				Initialize the pair at count 1 if it isn't found
+				else {
+					pairs.put(current_pair, 1);
+				}
+				
+			}
+		}
+	}
 	
-//	THIS CODE SEGMENT IS PROBABLY GARBAGE
-//	for(k=2; frequentItems.where($"tid" = k-1) != null; k++) {
-//		// Definitely not accurate -- what is the candidate key supposed to be? Just an int? How do I pull that from the DataFrame object?
-//		// This is supposed to be everything that matches the candidate key in the dataframe?
-//		// Need to loop through this later too...
-//		DataFrame candidate_gen = frequentItems.where($"tid" = k-1);
-//		for(Object entry : xact) //Object??
-//		{
-//			for(Object candidate : candidate_gen)
-//			{
-//				if(entry.contains(candidate)) { entry.count ++; }
-//			}
-//		}
-//		// if(c.count/n >= thresh) { frequentPairs.add()}
-//		// This should be adding all of the candidates that are over the threshold to "frequentItems"[k]
-//	}	
-
-	
-	//OUTLINE OF THE APRIORI 2-ITEM SETS ALGORITH
-	// ----------------------------------------------------------------------------------------------------------
-	// function APriori(T) <-- T = whole itemset
-	// 	F1 = Frequent 1-item sets
-	// 	for k=2, Fk-1 != 0, k++:
-	// 		Ck = candidate-gen(fk-1) <-- Candidate-gen????
-	// 		for transaction t in T:
-	// 			for candidate c in Ck:
-	// 				if c in t:
-	// 					c.count ++
-	// 				endif
-	// 			enfor
-	// 		Fk = {c in Ck or c.count/n >= minsup } <-- Not sure what this section is doing... minsup??
-	// 	endfor
-	// 	return F = UkFk <-- What is UkFk??
-	// ----------------------------------------------------------------------------------------------------------
+//	Loop through(?) Hashmap
+//	If pair's count >= thresh, add to 'frequentPairs' dataframe
+	double num_items = xact.toJavaRDD().collect().size();
+	for (Entry<ArrayList<Integer>, Integer> entry : pairs.entrySet()) {
+		System.out.println("Pair: " + entry.getKey() + "\twith count: " + entry.getValue());
+		if( (entry.getValue()/num_items) >= thresh) {
+			// Add to dataframe here
+		}
+	}
 		
 	try {
 	    Apriori.saveOutput(frequentPairs, outDirName + "/" + thresh, "pairs");
