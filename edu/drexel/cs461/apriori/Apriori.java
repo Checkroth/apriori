@@ -206,13 +206,8 @@ public final class Apriori {
 			rows_frame = rows_frame.filter("item != " + candidate);
 			for (Row c : candidate_rows) {
 				// Get all of the rows with matching tid
-				System.out.println("ERROR RIGHT NOW");
-				System.out.println(c.getString(0));
-				for (Row r : rows_frame.toJavaRDD().collect()) {
-					System.out.println(r.toString());
-				}
-				List<Row> search_rows = rows_frame
-						.filter("tid = " + c.getString(0)).toJavaRDD()
+				List<Row> search_rows = rows_frame.filter(rows_frame.col("tid")
+						.equalTo(c.getString(0))).toJavaRDD()
 						.collect();
 				for (Row r : search_rows) {
 					// Add current pair of items to array list for mapping
@@ -246,15 +241,14 @@ public final class Apriori {
 		
 //		Calculate pairs based on thresh & write to temp file
 //		For lack of a better option... I'm so sorry
-		double num_items = xact.toJavaRDD().collect().size();
-		ArrayList<String> add_strings = new ArrayList<String>();
-		
+		double num_items = xact.toJavaRDD().collect().size();		
 		String temp_file = "temp_pairs";
 		PrintWriter writer = new PrintWriter(temp_file, "UTF-8");
 		for (Entry<ArrayList<Integer>, Integer> entry : pairs.entrySet()) {
 			if ((entry.getValue() / num_items) >= thresh) {
 				// Add to string list here
-				writer.println(entry.getKey().get(0) + "/t" + entry.getKey().get(1) + "/t" + entry.getValue());
+				System.out.println("item1:\t" + entry.getKey().get(0) + "\titem2:\t" + entry.getKey().get(1) + "\tcount:\t" + entry.getValue()); 
+				writer.println(entry.getKey().get(0) + "\t" + entry.getKey().get(1) + "\t" + entry.getValue());
 			}
 		}
 		writer.close();
@@ -275,13 +269,14 @@ public final class Apriori {
 		DataFrame frequentPairs = sqlContext.createDataFrame(rowRDD, xactSchema);
 		// -----------------------------------------------------------------------------------
 
-
 		try {
 			Apriori.saveOutput(frequentPairs, outDirName + "/" + thresh,
 					"pairs");
 		} catch (IOException ioe) {
 			System.out.println("Cound not output pairs " + ioe.toString());
 		}
+		
+		System.out.println("Outputted Pairs");
 
 		// compute frequent triples (itemsets of size 3), output them to a file
 		DataFrame frequentTriples = null;
@@ -293,7 +288,7 @@ public final class Apriori {
 		} catch (IOException ioe) {
 			System.out.println("Cound not output triples " + ioe.toString());
 		}
-
+		System.out.println("Outputted Triples");
 		sparkContext.stop();
 
 	}
